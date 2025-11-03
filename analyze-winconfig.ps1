@@ -114,8 +114,12 @@ try {
 
 # Power Button Settings
 try {
-    $powerButton = (Get-ItemProperty "HKCU:\Control Panel\PowerCfg" -ErrorAction SilentlyContinue).PowerButtonAction
-    $powerButtonText = switch ($powerButton) {
+    # Power Button Action
+    $powerButton = Get-WmiObject -Namespace root\cimv2\power -Class Win32_PowerSettingDataIndex -ErrorAction SilentlyContinue | 
+        Where-Object { $_.InstanceID -like "*7648efa3-dd9c-4e3e-b566-50f929386280*" } |
+        Select-Object -First 1
+
+    $powerButtonText = switch ($powerButton.SettingIndexValue) {
         0 { "do_nothing" }
         1 { "sleep" }
         2 { "hibernate" }
@@ -128,8 +132,12 @@ try {
 }
 
 try {
-    $sleepButton = (Get-ItemProperty "HKCU:\Control Panel\PowerCfg" -ErrorAction SilentlyContinue).SleepButtonAction
-    $sleepButtonText = switch ($sleepButton) {
+    # Sleep Button Action
+    $sleepButton = Get-WmiObject -Namespace root\cimv2\power -Class Win32_PowerSettingDataIndex -ErrorAction SilentlyContinue | 
+        Where-Object { $_.InstanceID -like "*96996bc0-ad50-47ec-923b-6f41874dd9eb*" } |
+        Select-Object -First 1
+
+    $sleepButtonText = switch ($sleepButton.SettingIndexValue) {
         0 { "do_nothing" }
         1 { "sleep" }
         2 { "hibernate" }
@@ -142,8 +150,12 @@ try {
 }
 
 try {
-    $lidClose = (Get-ItemProperty "HKCU:\Control Panel\PowerCfg" -ErrorAction SilentlyContinue).LidCloseAction
-    $lidCloseText = switch ($lidClose) {
+    # Lid Close Action
+    $lidClose = Get-WmiObject -Namespace root\cimv2\power -Class Win32_PowerSettingDataIndex -ErrorAction SilentlyContinue | 
+        Where-Object { $_.InstanceID -like "*5ca83367-6e45-459f-a27b-476b1d01c936*" } |
+        Select-Object -First 1
+
+    $lidCloseText = switch ($lidClose.SettingIndexValue) {
         0 { "do_nothing" }
         1 { "sleep" }
         2 { "hibernate" }
@@ -157,36 +169,43 @@ try {
 
 # Power Plan Battery Levels
 try {
-    # Get all battery settings
-    $batterySettings = powercfg /query SCHEME_CURRENT SUB_BATTERY
+    # Get all battery settings at once
+    $output = powercfg /query SCHEME_CURRENT SUB_BATTERY
+    $lines = $output -split "`n"
+    
+    # Function to get battery level by GUID
+    function Get-BatteryLevel {
+        param($lines, $guid)
+        $foundGuid = $false
+        foreach ($line in $lines) {
+            if ($line -match $guid) { 
+                $foundGuid = $true 
+            }
+            if ($foundGuid -and $line -match "Current AC Power Setting Index: (0x[0-9a-f]+)") {
+                return [Convert]::ToInt32($matches[1], 16)
+            }
+        }
+        return $null
+    }
 
-    # Get Low Battery Level (BATLEVELLOW)
-    $lowBattery = ($batterySettings | Select-String -Context 0,2 "8183ba9a-e910-48da-8769-14ae6dc1170a" | 
-        Select-Object -ExpandProperty Context).Post | 
-        Select-String "Current AC Power Setting Index: (0x[0-9a-f]+)" | 
-        ForEach-Object { [int]("0x" + ($_.Matches.Groups[1].Value)) }
+    # Get Low Battery Level (GUID: 8183ba9a-e910-48da-8769-14ae6dc1170a)
+    $lowBattery = Get-BatteryLevel $lines "8183ba9a-e910-48da-8769-14ae6dc1170a"
     $lowBatteryText = if ($null -ne $lowBattery) { "$lowBattery%" } else { "Not Found" }
     Add-Report "Power Plan" "Low Battery Level" $lowBatteryText $config.settings.power.power_plan.low_battery_level
 
-    # Get Reserve Battery Level
-    $reserveBattery = ($batterySettings | Select-String -Context 0,2 "f3c5027d-cd16-4930-aa6b-90db844a8f00" | 
-        Select-Object -ExpandProperty Context).Post | 
-        Select-String "Current AC Power Setting Index: (0x[0-9a-f]+)" | 
-        ForEach-Object { [int]("0x" + ($_.Matches.Groups[1].Value)) }
-    $reserveBatteryText = if ($null -ne $reserveBattery) { "$reserveBattery%" } else { "Not Found" }
-    Add-Report "Power Plan" "Reserve Battery Level" $reserveBatteryText $config.settings.power.power_plan.reserve_battery_level
-
-    # Get Critical Battery Level (BATLEVELCRIT)
-    $criticalBattery = ($batterySettings | Select-String -Context 0,2 "9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469" | 
-        Select-Object -ExpandProperty Context).Post | 
-        Select-String "Current AC Power Setting Index: (0x[0-9a-f]+)" | 
-        ForEach-Object { [int]("0x" + ($_.Matches.Groups[1].Value)) }
+    # Get Critical Battery Level (GUID: 9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469)
+    $criticalBattery = Get-BatteryLevel $lines "9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469"
     $criticalBatteryText = if ($null -ne $criticalBattery) { "$criticalBattery%" } else { "Not Found" }
     Add-Report "Power Plan" "Critical Battery Level" $criticalBatteryText $config.settings.power.power_plan.critical_battery_level
+
+    # Get Reserve Battery Level (GUID: f3c5027d-cd16-4930-aa6b-90db844a8f00)
+    $reserveBattery = Get-BatteryLevel $lines "f3c5027d-cd16-4930-aa6b-90db844a8f00"
+    $reserveBatteryText = if ($null -ne $reserveBattery) { "$reserveBattery%" } else { "Not Found" }
+    Add-Report "Power Plan" "Reserve Battery Level" $reserveBatteryText $config.settings.power.power_plan.reserve_battery_level
 } catch {
     Add-Report "Power Plan" "Low Battery Level" "Error reading battery settings" $config.settings.power.power_plan.low_battery_level
-    Add-Report "Power Plan" "Reserve Battery Level" "Error reading battery settings" $config.settings.power.power_plan.reserve_battery_level
     Add-Report "Power Plan" "Critical Battery Level" "Error reading battery settings" $config.settings.power.power_plan.critical_battery_level
+    Add-Report "Power Plan" "Reserve Battery Level" "Error reading battery settings" $config.settings.power.power_plan.reserve_battery_level
 }
 
 # --- File Explorer ---
@@ -200,8 +219,10 @@ try {
 
 # --- Recycle Bin ---
 try {
-    $delConfirm = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -ErrorAction SilentlyContinue).ConfirmFileDelete
-    $confirmStatus = if ($delConfirm -eq 1) { $true } else { $false }
+    $shellState = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer").ShellState
+    # Byte 4 (index 3) contains the recycle bin settings
+    # Bit 0x02 indicates whether delete confirmation is enabled (0) or disabled (1)
+    $confirmStatus = if ($shellState -and ($shellState[3] -band 0x02) -eq 0) { $true } else { $false }
     Add-Report "Recycle Bin" "Delete Confirmation" $confirmStatus $config.settings.recycle_bin.show_delete_confirmation
 } catch {
     Add-Report "Recycle Bin" "Delete Confirmation" "Not Found" $config.settings.recycle_bin.show_delete_confirmation
