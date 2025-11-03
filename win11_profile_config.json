@@ -1,0 +1,57 @@
+{
+  "profile_name": "New Windows User Profile Config (Win11Pro)",
+  "settings": {
+    "taskbar": {
+      "search": "icon+label",
+      "widgets": "off",
+      "system_tray_icons": "all_on",
+      "alignment": "left"
+    },
+    "power": {
+      "sleep": {
+        "on_battery": "never",
+        "plugged_in": "never"
+      },
+      "display_off": {
+        "on_battery": "10_minutes",
+        "plugged_in": "10_minutes"
+      },
+      "power_buttons": {
+        "power_button": "shutdown",
+        "sleep_button": "do_nothing",
+        "lid_close": "hibernate"
+      },
+      "power_plan": {
+        "low_battery_level": "20%",
+        "reserve_battery_level": "15%",
+        "critical_battery_level": "10%"
+      }
+    },
+    "accounts": {
+      "sign_in_options": {
+        "require_sign_in_if_away": "every_time"
+      }
+    },
+    "windows_update": {
+      "get_latest_updates_asap": "off",
+      "insider_program": "off",
+      "advanced": {
+        "other_microsoft_products": "on",
+        "restart_asap": "off",
+        "notify_restart_required": "on"
+      },
+      "post_setup_recommendations": {
+        "restart_asap": "off"
+      }
+    },
+    "personalization": {
+      "start_menu_layout": "more_pins"
+    },
+    "file_explorer": {
+      "show_file_extensions": true
+    },
+    "recycle_bin": {
+      "show_delete_confirmation": true
+    }
+  }
+}
