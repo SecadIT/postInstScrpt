@@ -35,7 +35,8 @@ try {
     $alignment = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -ErrorAction SilentlyContinue).TaskbarAl
     $alignmentText = if ($alignment -eq 0) { "left" } else { "center" }
     Add-Report "Taskbar" "Alignment" $alignmentText $config.settings.taskbar.alignment
-} catch { 
+}
+catch { 
     Add-Report "Taskbar" "Alignment" "Not Found" $config.settings.taskbar.alignment 
 }
 
@@ -48,7 +49,8 @@ try {
         default { "unknown" }
     }
     Add-Report "Taskbar" "Search" $searchText $config.settings.taskbar.search
-} catch {
+}
+catch {
     Add-Report "Taskbar" "Search" "Not Found" $config.settings.taskbar.search
 }
 
@@ -56,7 +58,8 @@ try {
     $widgets = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -ErrorAction SilentlyContinue).TaskbarDa
     $widgetsText = if ($widgets -eq 0) { "off" } else { "on" }
     Add-Report "Taskbar" "Widgets" $widgetsText $config.settings.taskbar.widgets
-} catch {
+}
+catch {
     Add-Report "Taskbar" "Widgets" "Not Found" $config.settings.taskbar.widgets
 }
 
@@ -64,19 +67,42 @@ try {
     $sysTrayIcons = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer" -ErrorAction SilentlyContinue).EnableAutoTray
     $sysTrayText = if ($sysTrayIcons -eq 0) { "all_on" } else { "auto_hide" }
     Add-Report "Taskbar" "System Tray Icons" $sysTrayText $config.settings.taskbar.system_tray_icons
-} catch {
+}
+catch {
     Add-Report "Taskbar" "System Tray Icons" "Not Found" $config.settings.taskbar.system_tray_icons
+}
+
+# Check individual notification icons visibility
+try {
+    $notifyIcons = Get-ChildItem -Path "HKCU:\Control Panel\NotifyIconSettings" -ErrorAction SilentlyContinue
+    $promotedCount = 0
+    $totalCount = 0
+    foreach ($icon in $notifyIcons) {
+        $props = Get-ItemProperty $icon.PSPath -ErrorAction SilentlyContinue
+        if ($null -ne $props.IsPromoted) {
+            $totalCount++
+            if ($props.IsPromoted -eq 1) {
+                $promotedCount++
+            }
+        }
+    }
+    $iconVisibilityText = if ($promotedCount -eq $totalCount -and $totalCount -gt 0) { "all_visible" } elseif ($promotedCount -eq 0) { "all_hidden" } else { "mixed ($promotedCount/$totalCount visible)" }
+    Add-Report "Taskbar" "Individual Icon Visibility" $iconVisibilityText "all_visible"
+}
+catch {
+    Add-Report "Taskbar" "Individual Icon Visibility" "Error checking" "all_visible"
 }
 
 # --- Power ---
 try {
     $scheme = (powercfg /GETACTIVESCHEME 2>$null | Out-String).Trim()
     $schemeName = if ($scheme -match "High performance") { "High Performance" } 
-                  elseif ($scheme -match "Balanced") { "Balanced" } 
-                  elseif ($scheme -match "Power saver") { "Power Saver" } 
-                  else { "Unknown" }
+    elseif ($scheme -match "Balanced") { "Balanced" } 
+    elseif ($scheme -match "Power saver") { "Power Saver" } 
+    else { "Unknown" }
     Add-Report "Power" "Active Power Scheme" $schemeName "Balanced"
-} catch {
+}
+catch {
     Add-Report "Power" "Active Power Scheme" "Error retrieving" "Balanced"
 }
 
@@ -87,7 +113,8 @@ try {
     $sleepBatteryText = if ($sleepBatteryMinutes -eq 0) { "never" } else { "$sleepBatteryMinutes minutes" }
     $expectedSleep = if ($config.settings.power.sleep.on_battery -eq "never") { "never" } else { $config.settings.power.sleep.on_battery }
     Add-Report "Power" "Sleep (Battery)" $sleepBatteryText $expectedSleep
-} catch {
+}
+catch {
     Add-Report "Power" "Sleep (Battery)" "Error retrieving" $config.settings.power.sleep.on_battery
 }
 
@@ -98,7 +125,8 @@ try {
     $sleepACText = if ($sleepACMinutes -eq 0) { "never" } else { "$sleepACMinutes minutes" }
     $expectedSleepAC = if ($config.settings.power.sleep.plugged_in -eq "never") { "never" } else { $config.settings.power.sleep.plugged_in }
     Add-Report "Power" "Sleep (Plugged In)" $sleepACText $expectedSleepAC
-} catch {
+}
+catch {
     Add-Report "Power" "Sleep (Plugged In)" "Error retrieving" $config.settings.power.sleep.plugged_in
 }
 
@@ -108,7 +136,8 @@ try {
     $displayBatteryMinutes = [int]("0x" + $displayBattery) / 60
     $displayBatteryText = if ($displayBatteryMinutes -eq 0) { "never" } elseif ($displayBatteryMinutes -eq 10) { "10_minutes" } else { "$displayBatteryMinutes minutes" }
     Add-Report "Power" "Display Off (Battery)" $displayBatteryText $config.settings.power.display_off.on_battery
-} catch {
+}
+catch {
     Add-Report "Power" "Display Off (Battery)" "Error retrieving" $config.settings.power.display_off.on_battery
 }
 
@@ -116,8 +145,8 @@ try {
 try {
     # Power Button Action
     $powerButton = Get-WmiObject -Namespace root\cimv2\power -Class Win32_PowerSettingDataIndex -ErrorAction SilentlyContinue | 
-        Where-Object { $_.InstanceID -like "*7648efa3-dd9c-4e3e-b566-50f929386280*" } |
-        Select-Object -First 1
+    Where-Object { $_.InstanceID -like "*7648efa3-dd9c-4e3e-b566-50f929386280*" } |
+    Select-Object -First 1
 
     $powerButtonText = switch ($powerButton.SettingIndexValue) {
         0 { "do_nothing" }
@@ -127,15 +156,16 @@ try {
         default { "unknown" }
     }
     Add-Report "Power" "Power Button Action" $powerButtonText $config.settings.power.power_buttons.power_button
-} catch {
+}
+catch {
     Add-Report "Power" "Power Button Action" "Not Found" $config.settings.power.power_buttons.power_button
 }
 
 try {
     # Sleep Button Action
     $sleepButton = Get-WmiObject -Namespace root\cimv2\power -Class Win32_PowerSettingDataIndex -ErrorAction SilentlyContinue | 
-        Where-Object { $_.InstanceID -like "*96996bc0-ad50-47ec-923b-6f41874dd9eb*" } |
-        Select-Object -First 1
+    Where-Object { $_.InstanceID -like "*96996bc0-ad50-47ec-923b-6f41874dd9eb*" } |
+    Select-Object -First 1
 
     $sleepButtonText = switch ($sleepButton.SettingIndexValue) {
         0 { "do_nothing" }
@@ -145,15 +175,16 @@ try {
         default { "unknown" }
     }
     Add-Report "Power" "Sleep Button Action" $sleepButtonText $config.settings.power.power_buttons.sleep_button
-} catch {
+}
+catch {
     Add-Report "Power" "Sleep Button Action" "Not Found" $config.settings.power.power_buttons.sleep_button
 }
 
 try {
     # Lid Close Action
     $lidClose = Get-WmiObject -Namespace root\cimv2\power -Class Win32_PowerSettingDataIndex -ErrorAction SilentlyContinue | 
-        Where-Object { $_.InstanceID -like "*5ca83367-6e45-459f-a27b-476b1d01c936*" } |
-        Select-Object -First 1
+    Where-Object { $_.InstanceID -like "*5ca83367-6e45-459f-a27b-476b1d01c936*" } |
+    Select-Object -First 1
 
     $lidCloseText = switch ($lidClose.SettingIndexValue) {
         0 { "do_nothing" }
@@ -163,7 +194,8 @@ try {
         default { "unknown" }
     }
     Add-Report "Power" "Lid Close Action" $lidCloseText $config.settings.power.power_buttons.lid_close
-} catch {
+}
+catch {
     Add-Report "Power" "Lid Close Action" "Not Found" $config.settings.power.power_buttons.lid_close
 }
 
@@ -202,7 +234,8 @@ try {
     $reserveBattery = Get-BatteryLevel $lines "f3c5027d-cd16-4930-aa6b-90db844a8f00"
     $reserveBatteryText = if ($null -ne $reserveBattery) { "$reserveBattery%" } else { "Not Found" }
     Add-Report "Power Plan" "Reserve Battery Level" $reserveBatteryText $config.settings.power.power_plan.reserve_battery_level
-} catch {
+}
+catch {
     Add-Report "Power Plan" "Low Battery Level" "Error reading battery settings" $config.settings.power.power_plan.low_battery_level
     Add-Report "Power Plan" "Critical Battery Level" "Error reading battery settings" $config.settings.power.power_plan.critical_battery_level
     Add-Report "Power Plan" "Reserve Battery Level" "Error reading battery settings" $config.settings.power.power_plan.reserve_battery_level
@@ -213,7 +246,8 @@ try {
     $extensions = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -ErrorAction SilentlyContinue).HideFileExt
     $extensionsStatus = if ($extensions -eq 0) { $true } else { $false }
     Add-Report "File Explorer" "Show File Extensions" $extensionsStatus $config.settings.file_explorer.show_file_extensions
-} catch {
+}
+catch {
     Add-Report "File Explorer" "Show File Extensions" "Not Found" $config.settings.file_explorer.show_file_extensions
 }
 
@@ -224,22 +258,19 @@ try {
     # Bit 0x02 indicates whether delete confirmation is enabled (0) or disabled (1)
     $confirmStatus = if ($shellState -and ($shellState[3] -band 0x02) -eq 0) { $true } else { $false }
     Add-Report "Recycle Bin" "Delete Confirmation" $confirmStatus $config.settings.recycle_bin.show_delete_confirmation
-} catch {
+}
+catch {
     Add-Report "Recycle Bin" "Delete Confirmation" "Not Found" $config.settings.recycle_bin.show_delete_confirmation
 }
 
 # --- Windows Update ---
-# Check if Windows Update automatic updates are disabled via policy
-if (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU") {
-    try {
-        $autoUpdate = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -ErrorAction SilentlyContinue).NoAutoUpdate
-        $autoUpdateText = if ($autoUpdate -eq 1) { "off" } else { "on" }
-        Add-Report "Windows Update" "Get Latest Updates ASAP" $autoUpdateText $config.settings.windows_update.get_latest_updates_asap
-    } catch {
-        Add-Report "Windows Update" "Get Latest Updates ASAP" "off" $config.settings.windows_update.get_latest_updates_asap
-    }
-} else {
-    # No policy set means default Windows behavior (automatic updates enabled)
+# Check "Get the latest updates as soon as they're available"
+try {
+    $latestUpdates = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -ErrorAction SilentlyContinue).IsExpedited
+    $latestUpdatesText = if ($latestUpdates -eq 1) { "on" } else { "off" }
+    Add-Report "Windows Update" "Get Latest Updates ASAP" $latestUpdatesText $config.settings.windows_update.get_latest_updates_asap
+}
+catch {
     Add-Report "Windows Update" "Get Latest Updates ASAP" "off" $config.settings.windows_update.get_latest_updates_asap
 }
 
@@ -251,36 +282,41 @@ if (Test-Path "HKLM:\SOFTWARE\Microsoft\WindowsSelfHost\UI\Visibility") {
         $insiderHidden = $visibility.UIHiddenElements_Rejuv
         $insiderText = if ($insiderHidden -band 2) { "off" } else { "off" }  # Default to off for most users
         Add-Report "Windows Update" "Insider Program" $insiderText $config.settings.windows_update.insider_program
-    } catch {
+    }
+    catch {
         Add-Report "Windows Update" "Insider Program" "off" $config.settings.windows_update.insider_program
     }
-} else {
+}
+else {
     # No Insider registry key means not enrolled
     Add-Report "Windows Update" "Insider Program" "off" $config.settings.windows_update.insider_program
 }
 
 try {
-    $msProducts = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update" -ErrorAction SilentlyContinue).EnableFeaturedSoftware
+    $msProducts = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -ErrorAction SilentlyContinue).AllowMUUpdateService
     $msProductsText = if ($msProducts -eq 1) { "on" } else { "off" }
     Add-Report "Windows Update" "Other MS Products" $msProductsText $config.settings.windows_update.advanced.other_microsoft_products
-} catch {
-    Add-Report "Windows Update" "Other MS Products" "Not Found" $config.settings.windows_update.advanced.other_microsoft_products
+}
+catch {
+    Add-Report "Windows Update" "Other MS Products" "off" $config.settings.windows_update.advanced.other_microsoft_products
 }
 
 try {
     $restartASAP = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -ErrorAction SilentlyContinue).AlwaysAutoRebootAtScheduledTime
     $restartASAPText = if ($restartASAP -eq 1) { "on" } else { "off" }
     Add-Report "Windows Update" "Restart ASAP" $restartASAPText $config.settings.windows_update.advanced.restart_asap
-} catch {
+}
+catch {
     Add-Report "Windows Update" "Restart ASAP" "Not Found" $config.settings.windows_update.advanced.restart_asap
 }
 
 try {
-    $notifyRestart = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -ErrorAction SilentlyContinue).RebootRelaunchTimeoutEnabled
+    $notifyRestart = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -ErrorAction SilentlyContinue).RestartNotificationsAllowed2
     $notifyRestartText = if ($notifyRestart -eq 1) { "on" } else { "off" }
     Add-Report "Windows Update" "Notify Restart Required" $notifyRestartText $config.settings.windows_update.advanced.notify_restart_required
-} catch {
-    Add-Report "Windows Update" "Notify Restart Required" "Not Found" $config.settings.windows_update.advanced.notify_restart_required
+}
+catch {
+    Add-Report "Windows Update" "Notify Restart Required" "off" $config.settings.windows_update.advanced.notify_restart_required
 }
 
 # --- Accounts ---
@@ -288,7 +324,8 @@ try {
     $signInOptions = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -ErrorAction SilentlyContinue).InactivityTimeoutSecs
     $signInText = if ($signInOptions -eq 0) { "never" } else { "every_time" }
     Add-Report "Accounts" "Require Sign-in if Away" $signInText $config.settings.accounts.sign_in_options.require_sign_in_if_away
-} catch {
+}
+catch {
     Add-Report "Accounts" "Require Sign-in if Away" "Not Found" $config.settings.accounts.sign_in_options.require_sign_in_if_away
 }
 
@@ -297,32 +334,15 @@ try {
     $startLayout = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -ErrorAction SilentlyContinue).Start_Layout
     $layoutText = if ($startLayout -eq 1) { "more_pins" } else { "more_recommendations" }
     Add-Report "Personalization" "Start Menu Layout" $layoutText $config.settings.personalization.start_menu_layout
-} catch {
+}
+catch {
     Add-Report "Personalization" "Start Menu Layout" "Not Found" $config.settings.personalization.start_menu_layout
 }
 
 # Output summary table
 $report | Format-Table -AutoSize
 
-# Try to export, create new file if current one is locked
-$csvPath = ".\winconfig_analysis.csv"
-$counter = 1
-while (Test-Path $csvPath) {
-    try {
-        $report | Export-Csv $csvPath -NoTypeInformation -Force
-        Write-Host "`nAnalysis complete. Results saved to $csvPath" -ForegroundColor Green
-        break
-    } catch {
-        $csvPath = ".\winconfig_analysis_$counter.csv"
-        $counter++
-        if ($counter -gt 10) {
-            Write-Warning "Could not save CSV after 10 attempts. Data displayed above."
-            break
-        }
-    }
-}
-
-if (-not (Test-Path $csvPath)) {
-    $report | Export-Csv $csvPath -NoTypeInformation
-    Write-Host "`nAnalysis complete. Results saved to $csvPath" -ForegroundColor Green
-}
+# Display completion message
+Write-Host "`nAnalysis complete." -ForegroundColor Green
+Write-Host "Press any key to exit..." -ForegroundColor Yellow
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
