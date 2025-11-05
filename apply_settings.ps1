@@ -34,7 +34,7 @@ Start-Process explorer.exe
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 2
 
 # Widgets: Off
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0
+#Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0
 
 # System Tray Icons: Show all icons in taskbar
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer" -Name "EnableAutoTray" -Value 0
@@ -46,6 +46,10 @@ Get-ChildItem -Path "HKCU:\Control Panel\NotifyIconSettings" -ErrorAction Silent
 Write-Host "All system tray icons set to visible in taskbar."
 
 # Power Settings
+# Set active power plan to Balanced
+powercfg /setactive SCHEME_BALANCED
+Write-Host "Active power plan set to Balanced."
+
 powercfg /change standby-timeout-ac 0
 powercfg /change standby-timeout-dc 0
 powercfg /change monitor-timeout-ac 10
@@ -119,6 +123,9 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies
 Write-Host "Sign-in required if away setting applied."
 
 # Windows Update Settings
+# Turn OFF "Get the latest updates as soon as they're available"
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Name "IsContinuousInnovationOptedIn" -Value 0
+
 # Enable updates for other Microsoft products
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Name "AllowMUUpdateService" -Value 1
 
