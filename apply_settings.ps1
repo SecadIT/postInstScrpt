@@ -34,6 +34,7 @@ Start-Process explorer.exe
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 2
 
 # Widgets: Off
+# Note: Use disable-widgets.ps1 for complete widget removal via Group Policy
 #Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0
 
 # System Tray Icons: Show all icons in taskbar
@@ -123,8 +124,11 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies
 Write-Host "Sign-in required if away setting applied."
 
 # Windows Update Settings
-# Turn OFF "Get the latest updates as soon as they're available"
+# Turn OFF "Get the latest updates as soon as they're available" (Main level)
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Name "IsContinuousInnovationOptedIn" -Value 0
+
+# Turn OFF "Get me up to date as soon as possible" (Advanced options)
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Name "IsExpedited" -Value 0
 
 # Enable updates for other Microsoft products
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Name "AllowMUUpdateService" -Value 1

@@ -264,14 +264,24 @@ catch {
 }
 
 # --- Windows Update ---
-# Check "Get the latest updates as soon as they're available"
+# Check "Get the latest updates as soon as they're available" (Main level)
 try {
-    $latestUpdates = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -ErrorAction SilentlyContinue).IsExpedited
-    $latestUpdatesText = if ($latestUpdates -eq 1) { "on" } else { "off" }
-    Add-Report "Windows Update" "Get Latest Updates ASAP" $latestUpdatesText $config.settings.windows_update.get_latest_updates_asap
+    $getLatestUpdates = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -ErrorAction SilentlyContinue).IsContinuousInnovationOptedIn
+    $getLatestUpdatesText = if ($getLatestUpdates -eq 1) { "on" } else { "off" }
+    Add-Report "Windows Update" "Get Latest Updates" $getLatestUpdatesText $config.settings.windows_update.get_latest_updates
 }
 catch {
-    Add-Report "Windows Update" "Get Latest Updates ASAP" "off" $config.settings.windows_update.get_latest_updates_asap
+    Add-Report "Windows Update" "Get Latest Updates" "off" $config.settings.windows_update.get_latest_updates
+}
+
+# Check "Get me up to date as soon as possible" (Advanced options)
+try {
+    $getMeUpToDate = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -ErrorAction SilentlyContinue).IsExpedited
+    $getMeUpToDateText = if ($getMeUpToDate -eq 1) { "on" } else { "off" }
+    Add-Report "Windows Update" "Get Me Up To Date" $getMeUpToDateText $config.settings.windows_update.get_me_up_to_date
+}
+catch {
+    Add-Report "Windows Update" "Get Me Up To Date" "off" $config.settings.windows_update.get_me_up_to_date
 }
 
 # Check Windows Insider Program status

@@ -33,7 +33,8 @@
       }
     },
     "windows_update": {
-      "get_latest_updates_asap": "off",
+      "get_latest_updates": "off",
+      "get_me_up_to_date": "off",
       "insider_program": "off",
       "advanced": {
         "other_microsoft_products": "on",
